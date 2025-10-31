@@ -15,9 +15,18 @@ datasource db {
 
 model Usuario {
   id          Int       @id @default(autoincrement())
-  
+  nome        String
+  email       String    @unique
+  senha       String
+  tipo        String    @default("") 
 } 
 
 model Chamados {
-  id          Int       @id @default(autoincrement())
+  id           Int        @id @default(autoincrement())
+  descricao    String
+  status       String      
+  prioridade   String 
+  criadoEm     DateTime   @default(now())
+  atualizadoEm DateTime   @updatedAt
+
 }
