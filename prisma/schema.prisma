@@ -18,15 +18,30 @@ model Usuario {
   nome        String
   email       String    @unique
   senha       String
-  tipo        String    @default("") 
+  tipo        String    
+
+  // Relações
+
+  chamadosCriados  Chamados[] @relation("ChamadosCriados")
+  chamadosResponsavel Chamados[] @relation("ChamadosResponsavel")
+
+  @@map("usuarios")
 } 
 
 model Chamados {
   id           Int        @id @default(autoincrement())
   descricao    String
   status       String      
-  prioridade   String 
+  prioridade   String     
   criadoEm     DateTime   @default(now())
   atualizadoEm DateTime   @updatedAt
 
+  // Relacionamentos que criou e que é responsável pelo Chamado
+  criadoPorId  Int?
+  responsavelId Int?
+  
+  criadoPor    Usuario?  @relation("ChamadosCriados", fields: [criadoPorId], references: [id])
+  responsavel    Usuario?  @relation("ChamadosResponsavel", fields: [responsavelId], references: [id])
+
+  @@map("chamados")
 }
