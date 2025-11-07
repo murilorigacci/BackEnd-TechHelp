@@ -1,4 +1,4 @@
-import * as ChamadosModel from './../models/chamadosModel.js';
+import * as ChamadosModel from './../models/getAllModel.js';
 
 export const listarTodos = async (req, res) => {
     try {

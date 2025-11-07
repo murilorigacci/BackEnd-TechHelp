@@ -1,1 +1,0 @@
-import * as ChamadoModel from './../models/techHelpModel.js'
