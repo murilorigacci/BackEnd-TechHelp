@@ -1,4 +1,4 @@
-import * as ChamadosModel from '../models/techHelpModel.js'
+import * as ChamadosModel from '../models/getByIdModel.js'
 
 export const listarUm = async (req,res) => {
     try {
