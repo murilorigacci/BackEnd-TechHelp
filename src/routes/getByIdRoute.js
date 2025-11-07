@@ -1,6 +1,6 @@
 import { Router } from "express";
-import * as getByIdControllerController from './../controllers/getByIdController'
+import * as getByIdController from './../controllers/getByIdController'
 
-const router = Router();
+const Router = Router();
 
-router.get("/:id", getByIdController.listarUm);
+Router.get("/:id", getByIdController.listarUm);
