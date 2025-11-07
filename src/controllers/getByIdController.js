@@ -1,9 +1,9 @@
-import * as ChamadoModel from './../models/techHelpModel.js'
+import * as ChamadosModel from '../models/techHelpModel.js'
 
 export const listarUm = async (req,res) => {
     try {
         const id = req.params.id;
-        const chamado = await ChamadoModel.findById(id);
+        const chamado = await ChamadosModel.findById(id);
 
         if (!chamado) {
             return res.status(404).json({
