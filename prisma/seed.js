@@ -1,0 +1,125 @@
+// prisma/seed.js
+
+// ⭐️ CORREÇÃO 1: Usando import para PrismaClient
+import { PrismaClient } from '@prisma/client';
+// ⭐️ CORREÇÃO 2: Importando diretamente o faker para o local pt_BR (ES Module)
+import { faker } from '@faker-js/faker/locale/pt_BR'; 
+
+const prisma = new PrismaClient();
+
+const NUM_USUARIOS = 30;
+const NUM_CHAMADOS = 80;
+
+/**
+ * Gera um objeto de usuário fictício.
+ */
+function createFakeUser(index) {
+  const firstName = faker.person.firstName();
+  const lastName = faker.person.lastName();
+  const name = `${firstName} ${lastName}`;
+  // Garante unicidade no email adicionando o índice
+  const email = faker.internet.email({ firstName, lastName, provider: 'suporte.com.br', allowSpecialCharacters: false, suffix: index.toString() });
+  
+  // Define o tipo 'admin' para os 5 primeiros e 'padrao' para os demais
+  const type = index < 5 ? 'admin' : 'padrao';
+
+  return {
+    nome: name,
+    email: email.toLowerCase(),
+    // IMPORTANTE: Em produção, NUNCA armazene senhas sem HASH!
+    senha: 'senha123', 
+    tipo: type,
+  };
+}
+
+/**
+ * Gera um objeto de chamado fictício.
+ */
+function createFakeChamado(usuarioIds) {
+  // Escolhe um criador aleatório (obrigatório)
+  const criadorId = faker.helpers.arrayElement(usuarioIds);
+  
+  // Escolhe um responsável aleatório (pode ser null)
+  const responsavelId = faker.helpers.arrayElement([...usuarioIds, null]); 
+  
+  // Define status e prioridade aleatórios
+  const statusOptions = ['Aberto', 'Em Atendimento', 'Concluído', 'Cancelado'];
+  const prioridadeOptions = ['Baixa', 'Média', 'Alta', 'Urgente'];
+  
+  const status = faker.helpers.arrayElement(statusOptions);
+  const prioridade = faker.helpers.arrayElement(prioridadeOptions);
+  
+  const descricao = faker.lorem.sentences({ min: 1, max: 3 });
+
+  // Gera uma data de criação nos últimos 90 dias
+  const criadoEm = faker.date.recent({ days: 90 });
+  
+  // Se o chamado estiver 'Concluído', a data de atualização é posterior à criação.
+  let atualizadoEm = criadoEm;
+  if (status === 'Concluído' || status === 'Em Atendimento') {
+    atualizadoEm = faker.date.between({ from: criadoEm, to: new Date() });
+  }
+
+  // Objeto base para o Chamado
+  const chamadoData = {
+    descricao: `Chamado: ${descricao.substring(0, 50)}...`,
+    status: status,
+    prioridade: prioridade,
+    criadoEm: criadoEm,
+    atualizadoEm: atualizadoEm,
+    // O criadoPor é OBRIGATÓRIO (não é um campo opcional na sua lógica)
+    criadoPor: { connect: { id: criadorId } },
+  };
+
+  // Adiciona o responsável APENAS se responsavelId for um ID válido
+  if (responsavelId !== null) {
+    chamadoData.responsavel = { connect: { id: responsavelId } };
+  }
+  
+  return chamadoData;
+}
+
+// -----------------------------------------------------
+
+async function main() {
+  console.log('Iniciando o Seed...');
+
+  // 1. Limpa os dados existentes (opcional, mas recomendado para um seed limpo)
+  await prisma.chamados.deleteMany();
+  await prisma.usuario.deleteMany();
+  console.log('Tabelas limpas.');
+
+  // 2. Cria 30 Usuários
+  const userData = Array.from({ length: NUM_USUARIOS }, (_, i) => createFakeUser(i + 1));
+  
+  const createdUsers = await prisma.$transaction(
+    userData.map(data => prisma.usuario.create({ data }))
+  );
+  
+  const usuarioIds = createdUsers.map(user => user.id);
+  console.log(`Foram criados ${createdUsers.length} usuários.`);
+
+  // 3. Cria 80 Chamados
+  const chamadosData = Array.from({ length: NUM_CHAMADOS }, () => createFakeChamado(usuarioIds));
+  
+  // Cria os chamados um por um devido à complexidade da relação 'connect'.
+  const createdChamados = [];
+  for (const data of chamadosData) {
+      const chamado = await prisma.chamados.create({ data });
+      createdChamados.push(chamado);
+  }
+  
+  console.log(`Foram criados ${createdChamados.length} chamados.`);
+}
+
+main()
+  .catch(async (e) => {
+    // Isso imprimirá o erro detalhado que o Prisma está capturando
+    console.error('ERRO DETALHADO DURANTE O SEEDING:', e); 
+    await prisma.$disconnect();
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+    console.log('Seed concluído e conexão desconectada.');
+  });
