@@ -1,27 +1,27 @@
 import * as ChamadoModel from './../models/techHelpModel.js'
 
-export const listarTodos = async (requestAnimationFrame, res) => {
+export const listarUm = async (req,res) => {
     try {
-        const chamados = await ChamadoModel.findAll();
+        const id = req.params.id;
+        const chamado = await ChamadoModel.findById(id);
 
-        if(!chamados || chamados.length === 0) {
-            res.status(404).json({
-                total:length,
-                mensagem: ' Não há chamados na lista',
-                chamados
+        if (!chamado) {
+            return res.status(404).json({
+                erro: 'Chamado não encontrado!',
+                message: 'Verifique se o id do chamado existe',
+                id: id
             })
         }
 
         res.status(200).json({
-            total: chamados.length,
-            mensagem: 'Lista de chamados',
-            chamados
+            message: 'Chamado encontrado',
+            chamado
         })
+
     } catch (error) {
         res.status(500).json({
-            erro: 'erro interno de servidor',
-            detalhe: error.message,
-            status: 500    
-         })
+            erro: 'Erro ao buscar chamado por id',
+            detalhes: error.message
+        })
     }
 }
