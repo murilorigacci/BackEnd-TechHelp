@@ -1,165 +1,100 @@
-
 import { PrismaClient } from '@prisma/client';
-
-import { faker } from '@faker-js/faker/locale/pt_BR'; 
 
 const prisma = new PrismaClient();
 
-const NUM_USUARIOS = 30;
-const NUM_CHAMADOS = 80;
-
-/**
- * Gera um objeto de usuário fictício.
- */
-function createFakeUser(index) {
-  const firstName = faker.person.firstName();
-  const lastName = faker.person.lastName();
-  const name = `${firstName} ${lastName}`;
-  // Garante unicidade no email adicionando o índice
-  const email = faker.internet.email({ firstName, lastName, provider: 'suporte.com.br', allowSpecialCharacters: false, suffix: index.toString() });
-  
-  // Define o tipo 'admin' para os 5 primeiros e 'padrao' para os demais
-  const type = index < 5 ? 'admin' : 'padrao';
-
-  return {
-    nome: name,
-    email: email.toLowerCase(),
-    // IMPORTANTE: Em produção, NUNCA armazene senhas sem HASH!
-    senha: 'senha123', 
-    tipo: type,
-  };
-}
-
-/**
- * Gera um objeto de chamado fictício.
- */
-function createFakeChamado(usuarioIds) {
-  // Escolhe um criador aleatório (obrigatório)
-  const criadorId = faker.helpers.arrayElement(usuarioIds);
-  
-  // Escolhe um responsável aleatório (pode ser null)
-  const responsavelId = faker.helpers.arrayElement([...usuarioIds, null]); 
-  
-  // Define status e prioridade aleatórios
-  const statusOptions = ['Aberto', 'Em Atendimento', 'Concluído', 'Cancelado'];
-  const prioridadeOptions = ['Baixa', 'Média', 'Alta', 'Urgente'];
-  
-  const status = faker.helpers.arrayElement(statusOptions);
-  const prioridade = faker.helpers.arrayElement(prioridadeOptions);
-  
-  const descricao = faker.lorem.sentences({ min: 1, max: 3 });
-
-  // Gera uma data de criação nos últimos 90 dias
-  const criadoEm = faker.date.recent({ days: 90 });
-  
-  // Se o chamado estiver 'Concluído', a data de atualização é posterior à criação.
-  let atualizadoEm = criadoEm;
-  if (status === 'Concluído' || status === 'Em Atendimento') {
-    atualizadoEm = faker.date.between({ from: criadoEm, to: new Date() });
-  }
-
-  // Objeto base para o Chamado
-  const chamadoData = {
-    descricao: `Chamado: ${descricao.substring(0, 50)}...`,
-    status: status,
-    prioridade: prioridade,
-    criadoEm: criadoEm,
-    atualizadoEm: atualizadoEm,
-    // O criadoPor é OBRIGATÓRIO (não é um campo opcional na sua lógica)
-    criadoPor: { connect: { id: criadorId } },
-  };
-
-  // Adiciona o responsável APENAS se responsavelId for um ID válido
-  if (responsavelId !== null) {
-    chamadoData.responsavel = { connect: { id: responsavelId } };
-  }
-  
-  return chamadoData;
-}
-
-// -----------------------------------------------------
-
-async function main() {
-  console.log('Iniciando o Seed...');
-
-  // 1. Limpa os dados existentes (opcional, mas recomendado para um seed limpo)
-  await prisma.chamados.deleteMany();
-  await prisma.usuario.deleteMany();
-  console.log('Tabelas limpas.');
-
-  // 2. Cria 30 Usuários
-  const userData = Array.from({ length: NUM_USUARIOS }, (_, i) => createFakeUser(i + 1));
-  
-  const createdUsers = await prisma.$transaction(
-    userData.map(data => prisma.usuario.create({ data }))
-  );
-  
-  const usuarioIds = createdUsers.map(user => user.id);
-  console.log(`Foram criados ${createdUsers.length} usuários.`);
-
-  // 3. Cria 80 Chamados
-  const chamadosData = Array.from({ length: NUM_CHAMADOS }, () => createFakeChamado(usuarioIds));
-  
-  // Cria os chamados um por um devido à complexidade da relação 'connect'.
-  const createdChamados = [];
-  for (const data of chamadosData) {
-      const chamado = await prisma.chamados.create({ data });
-      createdChamados.push(chamado);
-  }
-  
-  console.log(`Foram criados ${createdChamados.length} chamados.`);
-}
-
-main()
-  .catch(async (e) => {
-    // Isso imprimirá o erro detalhado que o Prisma está capturando
-    console.error('ERRO DETALHADO DURANTE O SEEDING:', e); 
-    await prisma.$disconnect();
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-    console.log('Seed concluído e conexão desconectada.');
-  });
-
-
-  // ANA JULIA //
-
-    async function main() {
+  async function main() {
     await prisma.chamados.createMany({
       data: [
-        { descricao: 'Computador não liga', status: 'aberto', prioridade: 'alta', criadoPorId: 1, responsavelId: 2 },
-        {descricao: 'Não consigo acessar o Wi-Fi da empresa', status: "aberto", prioridade: "alta", criadoPorId: 3, responsavelId: 4},
-        { descricao: "Impressora da área de Vendas está offline", status: "em_andamento", prioridade: "média", criadoPorId: 5, responsavelId: 2 },
-        { descricao: "Monitor secundário não está sendo reconhecido", status: "aberto", prioridade: "média", criadoPorId: 6, responsavelId: 4 },
-        { descricao: "Solicitação de instalação do software DesignPro", status: "pendente", prioridade: "baixa", criadoPorId: 7, responsavelId: 8 },
-        { descricao: "Mouse sem fio parou de funcionar", status: "aberto", prioridade: "baixa", criadoPorId: 9, responsavelId: 10 },
-        { descricao: "Esqueci minha senha do sistema interno (RH)", status: "aberto", prioridade: "alta", criadoPorId: 11, responsavelId: 8 },
-        { descricao: "Minha conta foi bloqueada após 3 tentativas de login", status: "aberto", prioridade: "alta", criadoPorId: 12, responsavelId: 10 },
-        { descricao: "Solicitação de acesso à pasta compartilhada do Projeto Alfa", status: "resolvido", prioridade: "baixa", criadoPorId: 13, responsavelId: 2 },
-        { descricao: "Relato de e-mail suspeito (tentativa de phishing)", status: "aberto", prioridade: "alta", criadoPorId: 14, responsavelId: 4 },
-        { descricao: "Erro ao tentar salvar um documento no CRM da Vendas", status: "aberto", prioridade: "média", criadoPorId: 15, responsavelId: 8 },
-        { descricao: "Sistema de Folha de Pagamento está extremamente lento", status: "em_andamento", prioridade: "alta", criadoPorId: 16, responsavelId: 10 },
-        { descricao: "Botão de 'Exportar Relatório' desapareceu da tela do ERP", status: "aberto", prioridade: "média", criadoPorId: 17, responsavelId: 2 },
-        { descricao: "Sugestão de melhoria: adicionar filtro por data na busca", status: "fechado", prioridade: "baixa", criadoPorId: 18, responsavelId: 4 },
-        { descricao: "Lâmpada do escritório da sala 3 está queimada (Facilities)", status: "aberto", prioridade: "baixa", criadoPorId: 19, responsavelId: 8 },
-        { descricao: "Vazamento na pia do banheiro masculino (Facilities)", status: "em_andamento", prioridade: "alta", criadoPorId: 20, responsavelId: 10 },
-        { descricao: "Ar condicionado da sala de reuniões não está gelando", status: "aberto", prioridade: "média", criadoPorId: 21, responsavelId: 2 },
-        { descricao: "Fatura do cliente #C005 veio duplicada no sistema", status: "aberto", prioridade: "alta", criadoPorId: 22, responsavelId: 4 },
-        { descricao: "Solicitação de reenvio da Nota Fiscal de Serviço #876", status: "resolvido", prioridade: "baixa", criadoPorId: 23, responsavelId: 8 },
-        { descricao: "Dúvida sobre o funcionamento da funcionalidade 'Checklist de Onboarding'", status: "pendente", prioridade: "média", criadoPorId: 24, responsavelId: 10 },
-
-
+  { descricao: 'Falha grave no acesso ao banco de dados', status: 'aberto', prioridade: 'altíssima', criadoPorId: 1, responsavelId: 3 },
+  { descricao: 'Sistema de faturamento fora do ar', status: 'em_andamento', prioridade: 'altíssima', criadoPorId: 5, responsavelId: 1 },
+  { descricao: 'Perda de dados de cliente no CRM', status: 'aberto', prioridade: 'alta', criadoPorId: 2, responsavelId: 4 },
+  { descricao: 'Vazamento de informações sensíveis', status: 'em_andamento', prioridade: 'altíssima', criadoPorId: 3, responsavelId: 2 },
+  { descricao: 'Bloqueio total de conta de usuário chave', status: 'aberto', prioridade: 'alta', criadoPorId: 4, responsavelId: 5 },
+  { descricao: 'Firewall bloqueando tráfego essencial', status: 'em_andamento', prioridade: 'altíssima', criadoPorId: 1, responsavelId: 2 },
+  { descricao: 'Erro na folha de pagamento de emergência', status: 'aberto', prioridade: 'altíssima', criadoPorId: 5, responsavelId: 3 },
+  { descricao: 'Servidor web principal inacessível', status: 'em_andamento', prioridade: 'alta', criadoPorId: 2, responsavelId: 1 },
+  { descricao: 'Phishing reportado por vários colaboradores', status: 'aberto', prioridade: 'alta', criadoPorId: 3, responsavelId: 4 },
+  { descricao: 'Ambiente de testes indisponível para QA', status: 'em_andamento', prioridade: 'alta', criadoPorId: 4, responsavelId: 3 },
+  { descricao: 'Troca de bateria de notebook corporativo', status: 'aberto', prioridade: 'média', criadoPorId: 1, responsavelId: 4 },
+  { descricao: 'Monitor com pixel morto ou defeito', status: 'em_andamento', prioridade: 'média', criadoPorId: 5, responsavelId: 2 },
+  { descricao: 'Headset novo para call center', status: 'aberto', prioridade: 'média', criadoPorId: 2, responsavelId: 5 },
+  { descricao: 'Manutenção preventiva em PC antigo', status: 'em_andamento', prioridade: 'média', criadoPorId: 3, responsavelId: 1 },
+  { descricao: 'Problemas com webcam durante reunião', status: 'concluído', prioridade: 'média', criadoPorId: 4, responsavelId: 2 },
+  { descricao: 'Configuração de impressora de rede em novo andar', status: 'aberto', prioridade: 'média', criadoPorId: 1, responsavelId: 5 },
+  { descricao: 'Solicitação de adaptador USB-C', status: 'em_andamento', prioridade: 'média', criadoPorId: 5, responsavelId: 4 },
+  { descricao: 'Substituição de cabo de rede danificado', status: 'concluído', prioridade: 'média', criadoPorId: 2, responsavelId: 3 },
+  { descricao: 'Limpeza e otimização de máquina lenta', status: 'aberto', prioridade: 'média', criadoPorId: 3, responsavelId: 5 },
+  { descricao: 'Instalação de mouse pad ergonômico', status: 'em_andamento', prioridade: 'média', criadoPorId: 4, responsavelId: 1 },
+  { descricao: 'Permissão para instalar Chrome Extensions', status: 'aberto', prioridade: 'baixa', criadoPorId: 1, responsavelId: 2 },
+  { descricao: 'Solicitação de acesso a curso online', status: 'em_andamento', prioridade: 'baixa', criadoPorId: 5, responsavelId: 4 },
+  { descricao: 'Mudança de grupo de segurança no AD', status: 'concluído', prioridade: 'baixa', criadoPorId: 2, responsavelId: 1 },
+  { descricao: 'Criação de conta para estagiário (futura)', status: 'aberto', prioridade: 'baixa', criadoPorId: 3, responsavelId: 5 },
+  { descricao: 'Revogação de acesso de ex-colaborador', status: 'concluído', prioridade: 'baixa', criadoPorId: 4, responsavelId: 3 },
+  { descricao: 'Criação de e-mail genérico para setor', status: 'aberto', prioridade: 'baixa', criadoPorId: 1, responsavelId: 4 },
+  { descricao: 'Ajuste no limite de armazenamento em nuvem', status: 'em_andamento', prioridade: 'baixa', criadoPorId: 5, responsavelId: 2 },
+  { descricao: 'Acesso à documentação interna desatualizada', status: 'aberto', prioridade: 'baixa', criadoPorId: 2, responsavelId: 3 },
+  { descricao: 'Revisão de permissões de pastas compartilhadas', status: 'concluído', prioridade: 'baixa', criadoPorId: 3, responsavelId: 1 },
+  { descricao: 'Cadastro de número de telefone em ramal', status: 'em_andamento', prioridade: 'baixa', criadoPorId: 4, responsavelId: 5 },
+  { descricao: 'Relatório de bugs no novo módulo do app', status: 'aberto', prioridade: 'alta', criadoPorId: 1, responsavelId: 5 },
+  { descricao: 'Dificuldade de conexão Wi-Fi no 3º andar', status: 'em_andamento', prioridade: 'média', criadoPorId: 5, responsavelId: 3 },
+  { descricao: 'Configuração de multi-fator de autenticação (MFA)', status: 'concluído', prioridade: 'média', criadoPorId: 2, responsavelId: 4 },
+  { descricao: 'Erro na geração de nota fiscal eletrônica (NF-e)', status: 'aberto', prioridade: 'alta', criadoPorId: 3, responsavelId: 1 },
+  { descricao: 'Solicitação de aumento de memória RAM (upgrade)', status: 'em_andamento', prioridade: 'média', criadoPorId: 4, responsavelId: 2 },
+  { descricao: 'Problema na sincronização do calendário corporativo', status: 'concluído', prioridade: 'média', criadoPorId: 1, responsavelId: 3 },
+  { descricao: 'Software de modelagem 3D travando constantemente', status: 'aberto', prioridade: 'alta', criadoPorId: 5, responsavelId: 4 },
+  { descricao: 'Implementação de novo padrão de nomenclatura', status: 'em_andamento', prioridade: 'baixa', criadoPorId: 2, responsavelId: 5 },
+  { descricao: 'Verificação de licença de software expirada', status: 'aberto', prioridade: 'média', criadoPorId: 3, responsavelId: 2 },
+  { descricao: 'Treinamento de equipe em nova ferramenta de gestão', status: 'concluído', prioridade: 'baixa', criadoPorId: 4, responsavelId: 1 },
+  { descricao: 'Implantação de patch de segurança crítico', status: 'em_andamento', prioridade: 'altíssima', criadoPorId: 1, responsavelId: 3 },
+  { descricao: 'Relatar lentidão no sistema de vendas', status: 'aberto', prioridade: 'alta', criadoPorId: 5, responsavelId: 2 },
+  { descricao: 'Redefinição de senha de aplicativo legado', status: 'concluído', prioridade: 'média', criadoPorId: 2, responsavelId: 4 },
+  { descricao: 'Configuração de VPN para viagem internacional', status: 'em_andamento', prioridade: 'média', criadoPorId: 3, responsavelId: 5 },
+  { descricao: 'Criação de subdomínio para novo projeto', status: 'aberto', prioridade: 'baixa', criadoPorId: 4, responsavelId: 1 },
+  { descricao: 'Análise de logs para erro desconhecido', status: 'em_andamento', prioridade: 'alta', criadoPorId: 1, responsavelId: 4 },
+  { descricao: 'Atualização de BIOS de estação de trabalho', status: 'concluído', prioridade: 'média', criadoPorId: 5, responsavelId: 3 },
+  { descricao: 'Bug na integração entre sistemas X e Y', status: 'aberto', prioridade: 'alta', criadoPorId: 2, responsavelId: 1 },
+  { descricao: 'Solicitação de descarte de equipamento antigo', status: 'em_andamento', prioridade: 'baixa', criadoPorId: 3, responsavelId: 2 },
+  { descricao: 'Problemas de áudio em chamada VOIP', status: 'concluído', prioridade: 'média', criadoPorId: 4, responsavelId: 5 },
+  { descricao: 'Falha na autenticação do sistema legado', status: 'em_andamento', prioridade: 'alta', criadoPorId: 5, responsavelId: 1 },
+  { descricao: 'Solicitação de nova funcionalidade no ERP', status: 'aberto', prioridade: 'baixa', criadoPorId: 2, responsavelId: 4 },
+  { descricao: 'Erro de cálculo em planilha macro', status: 'concluído', prioridade: 'média', criadoPorId: 3, responsavelId: 5 },
+  { descricao: 'Instalação de plugin específico para navegador', status: 'aberto', prioridade: 'baixa', criadoPorId: 4, responsavelId: 2 },
+  { descricao: 'Sistema de gestão de projetos lento após atualização', status: 'em_andamento', prioridade: 'alta', criadoPorId: 1, responsavelId: 3 },
+  { descricao: 'Necessidade de migração de dados entre plataformas', status: 'aberto', prioridade: 'média', criadoPorId: 5, responsavelId: 4 },
+  { descricao: 'Configuração de assinatura digital em PDF', status: 'concluído', prioridade: 'baixa', criadoPorId: 2, responsavelId: 1 },
+  { descricao: 'Incompatibilidade de software com Windows 11', status: 'em_andamento', prioridade: 'média', criadoPorId: 3, responsavelId: 5 },
+  { descricao: 'Erro ao gerar token de API', status: 'aberto', prioridade: 'alta', criadoPorId: 4, responsavelId: 3 },
+  { descricao: 'Solicitação de desinstalação de software obsoleto', status: 'concluído', prioridade: 'baixa', criadoPorId: 1, responsavelId: 2 },
+  { descricao: 'Problema com telefone fixo (VOIP) sem sinal', status: 'aberto', prioridade: 'média', criadoPorId: 5, responsavelId: 2 },
+  { descricao: 'Manutenção do nobreak da sala de servidores', status: 'em_andamento', prioridade: 'alta', criadoPorId: 2, responsavelId: 4 },
+  { descricao: 'Configuração de DHCP para nova sub-rede', status: 'concluído', prioridade: 'média', criadoPorId: 3, responsavelId: 1 },
+  { descricao: 'Queda de energia elétrica no datacenter', status: 'aberto', prioridade: 'altíssima', criadoPorId: 4, responsavelId: 5 },
+  { descricao: 'Solicitação de link de internet redundante', status: 'em_andamento', prioridade: 'baixa', criadoPorId: 1, responsavelId: 4 },
+  { descricao: 'Otimização de rotas na rede interna', status: 'aberto', prioridade: 'média', criadoPorId: 5, responsavelId: 3 },
+  { descricao: 'Falha no acesso remoto via RDP', status: 'em_andamento', prioridade: 'alta', criadoPorId: 2, responsavelId: 1 },
+  { descricao: 'Renovação de contrato de serviço de Cloud', status: 'concluído', prioridade: 'baixa', criadoPorId: 3, responsavelId: 4 },
+  { descricao: 'Sistema de monitoramento de infraestrutura offline', status: 'aberto', prioridade: 'altíssima', criadoPorId: 4, responsavelId: 2 },
+  { descricao: 'Ajuste de banda de internet para filial', status: 'em_andamento', prioridade: 'média', criadoPorId: 1, responsavelId: 5 },
+  { descricao: 'Computador infectado por ransomware', status: 'aberto', prioridade: 'altíssima', criadoPorId: 5, responsavelId: 3 },
+  { descricao: 'Erro no cálculo de comissão de vendas', status: 'em_andamento', prioridade: 'alta', criadoPorId: 2, responsavelId: 5 },
+  { descricao: 'Revisão de política de segurança de dados', status: 'aberto', prioridade: 'média', criadoPorId: 3, responsavelId: 4 },
+  { descricao: 'Solicitação de novo token de segurança físico', status: 'concluído', prioridade: 'baixa', criadoPorId: 4, responsavelId: 1 },
+  { descricao: 'Problemas com a câmera de segurança (CFTV)', status: 'em_andamento', prioridade: 'média', criadoPorId: 1, responsavelId: 2 },
+  { descricao: 'Relatar Spam excessivo na caixa de entrada', status: 'aberto', prioridade: 'média', criadoPorId: 5, responsavelId: 4 },
+  { descricao: 'Implantação de servidor de testes virtual', status: 'em_andamento', prioridade: 'alta', criadoPorId: 2, responsavelId: 3 },
+  { descricao: 'Treinamento sobre uso correto do novo ERP', status: 'concluído', prioridade: 'baixa', criadoPorId: 3, responsavelId: 1 },
+  { descricao: 'Revisão de licenças de software vencidas', status: 'aberto', prioridade: 'média', criadoPorId: 4, responsavelId: 5 },
+  { descricao: 'Atualização de firmwares de switches de rede', status: 'em_andamento', prioridade: 'alta', criadoPorId: 1, responsavelId: 3 }
       ],
       skipDuplicates: true,
     });
 
-  console.log('Seed de chamados concluído!');
+    console.log('Seed de chamados concluído!');
   }
 
   main()
     .catch((e) => {
-      console.error('Erro no seed:', e);
+      console.error('Erro no seed:',e);
       process.exit(1);
     })
     .finally(async () => {
