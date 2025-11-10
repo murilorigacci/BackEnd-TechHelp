@@ -1,8 +1,6 @@
-// prisma/seed.js
 
-// ⭐️ CORREÇÃO 1: Usando import para PrismaClient
 import { PrismaClient } from '@prisma/client';
-// ⭐️ CORREÇÃO 2: Importando diretamente o faker para o local pt_BR (ES Module)
+
 import { faker } from '@faker-js/faker/locale/pt_BR'; 
 
 const prisma = new PrismaClient();
@@ -123,3 +121,26 @@ main()
     await prisma.$disconnect();
     console.log('Seed concluído e conexão desconectada.');
   });
+
+
+  // ANA JÚLIA //
+
+    async function main() {
+    await prisma.chamados.createMany({
+      data: [
+        { descricao: 'Computador não liga', status: 'aberto', prioridade: 'alta', criadoPorId: 1, responsavelId: 2 }
+      ],
+      skipDuplicates: true,
+    });
+
+  console.log('Seed de chamados concluído!');
+  }
+
+  main()
+    .catch((e) => {
+      console.error('Erro no seed:', e);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
