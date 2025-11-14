@@ -20,8 +20,7 @@ app.get("/", (req, res) => {
 // Aqui vão todas suas Rotas
 app.use('/chamados', techHelpRoute);
 
-
 // Iniciar servidor escutando na porta definida
 app.listen(serverPort, () => {
-    console.log('🚀 Servidor rodando em http://localhost:${serverPort} 🚀');
+    console.log(`🚀 Servidor rodando em http://localhost:${serverPort} 🚀`);
 });
