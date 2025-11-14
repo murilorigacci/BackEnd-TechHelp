@@ -2,6 +2,9 @@
 import express from "express";
 import dotenv from "dotenv";
 import techHelpRoute from './src/routes/techHelpRoute.js';
+import cors from 'cors'; // Importa o pacote CORS
+
+
 
 // Criar aplicação com Express e configurar para aceitar JSON
 const app = express();
@@ -15,6 +18,7 @@ const serverPort = process.env.PORT || 3001;
 app.get("/", (req, res) => {
     res.send("🚀 Servidor funcionando...");
 });
+app.use(cors());
 
 
 // Aqui vão todas suas Rotas
