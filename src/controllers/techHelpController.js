@@ -151,7 +151,7 @@ export const apagar = async (req, res) => {
         }
 
         await ChamadosModel.deleteChamado(id);
-        return res.status(204).json({ mensagem: 'Chamado apagado com sucesso' });
+        return res.status(200).json({ mensagem: 'Chamado apagado com sucesso' });
     } catch (error) {
         return res.status(500).json({ erro: 'Erro ao apagar chamado', detalhes: error.message });
     }
