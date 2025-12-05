@@ -25,12 +25,10 @@ export const findWithFilters = async ({ status, prioridade, responsavel }) => {
     const conditions = [];
 
     if (status) {
-        // case-insensitive match for status
         conditions.push({ status: { equals: String(status), mode: 'insensitive' } });
     }
 
     if (prioridade) {
-        // case-insensitive match for prioridade
         conditions.push({ prioridade: { equals: String(prioridade), mode: 'insensitive' } });
     }
 
@@ -39,7 +37,6 @@ export const findWithFilters = async ({ status, prioridade, responsavel }) => {
         if (!Number.isNaN(id)) {
             conditions.push({ responsavelId: id });
         } else {
-            // if responsavel is not numeric, try matching by related Usuario name is out of scope here
         }
     }
 
