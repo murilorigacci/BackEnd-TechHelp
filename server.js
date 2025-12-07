@@ -21,3 +21,5 @@ app.use("/chamados", techHelpRoute);
 app.listen(serverPort, () => {
   console.log(`👩‍💻 Servidor rodando em http://localhost:${serverPort} 👩‍💻`);
 });
+
+
